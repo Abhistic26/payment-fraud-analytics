@@ -216,16 +216,17 @@ with tabs[0]:
         f.add_bar(x=daily.txn_date, y=daily.fraud_value, name="Daily loss",
                   marker_color="#DCD8CE",
                   hovertemplate="%{x|%d %b}<br>Loss %{y:,.0f}<extra></extra>")
-        f.add_scatter(x=daily.txn_date, y=daily.fraud_rate_7d_ma * 1e5,
-                      name="Fraud rate (7d avg)", yaxis="y2",
+        f.add_scatter(x=daily.txn_date, y=daily.fraud_rate_7d_ma,
+                      name="Fraud rate 7d avg %",
                       line=dict(color=RISK, width=2.2),
-                      hovertemplate="%{x|%d %b}<br>%{customdata:.3f}%<extra></extra>",
-                      customdata=daily.fraud_rate_7d_ma)
-        f.update_layout(
-            **PLOTLY, height=330, title="Daily loss and smoothed fraud rate",
-            yaxis2=dict(overlaying="y", side="right", showgrid=False,
-                        title="", tickformat=".0f", showticklabels=False),
-            legend=dict(orientation="h", y=1.06, x=0, bgcolor="rgba(0,0,0,0)"))
+                      hovertemplate="%{x|%d %b}<br>%{y:.3f}%<extra></extra>",
+                      yaxis="y2")
+        layout = dict(**PLOTLY)
+        layout.update(height=330, title="Daily loss and smoothed fraud rate",
+                      yaxis2=dict(overlaying="y", side="right", showgrid=False,
+                                  tickformat=".3f"),
+                      legend=dict(orientation="h", y=1.06, x=0, bgcolor="rgba(0,0,0,0)"))
+        f.update_layout(**layout)
         st.plotly_chart(f, use_container_width=True)
 
     with c2:
