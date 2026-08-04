@@ -1,0 +1,338 @@
+// ===========================================================================
+//  PAYMENT FRAUD ANALYTICS  --  DAX MEASURE LIBRARY
+//  ---------------------------------------------------------------------------
+//  Target model : star schema
+//                 fact_transactions  (many)
+//                 dim_date / dim_customer / dim_terminal / dim_amount_band (one)
+//
+//  Create a dedicated measure table first:
+//      Home > Enter Data > name it "_Measures" > Load > delete the blank column
+//  Then paste each measure below via Modeling > New Measure.
+//
+//  Convention: every base measure is defined once and reused. Percentages are
+//  never hardcoded against a filtered total -- ALLSELECTED / REMOVEFILTERS is
+//  used explicitly so the visual reacts correctly to slicers.
+// ===========================================================================
+
+
+// ---------------------------------------------------------------------------
+//  1. BASE MEASURES
+// ---------------------------------------------------------------------------
+
+Total Transactions =
+COUNTROWS ( fact_transactions )
+
+
+Total Value =
+SUM ( fact_transactions[amount] )
+
+
+Fraud Transactions =
+CALCULATE (
+    COUNTROWS ( fact_transactions ),
+    fact_transactions[is_fraud] = 1
+)
+
+
+Legit Transactions =
+[Total Transactions] - [Fraud Transactions]
+
+
+Fraud Loss =
+CALCULATE (
+    SUM ( fact_transactions[amount] ),
+    fact_transactions[is_fraud] = 1
+)
+
+
+// ---------------------------------------------------------------------------
+//  2. RATE MEASURES
+//     DIVIDE() rather than "/" -- returns BLANK on a zero denominator instead
+//     of an error, which keeps cards clean when a slicer empties the filter.
+// ---------------------------------------------------------------------------
+
+Fraud Rate % =
+DIVIDE ( [Fraud Transactions], [Total Transactions], 0 ) * 100
+
+
+Value at Risk % =
+DIVIDE ( [Fraud Loss], [Total Value], 0 ) * 100
+
+
+Avg Loss per Incident =
+DIVIDE ( [Fraud Loss], [Fraud Transactions], 0 )
+
+
+Avg Transaction Value =
+DIVIDE ( [Total Value], [Total Transactions], 0 )
+
+
+// ---------------------------------------------------------------------------
+//  3. RISK LIFT
+//     How much riskier is the current slice than the portfolio as a whole?
+//     REMOVEFILTERS on the fact table gives the unfiltered baseline while
+//     leaving any page-level date filter intact.
+// ---------------------------------------------------------------------------
+
+Portfolio Fraud Rate % =
+CALCULATE (
+    [Fraud Rate %],
+    REMOVEFILTERS ( fact_transactions ),
+    REMOVEFILTERS ( dim_terminal ),
+    REMOVEFILTERS ( dim_customer ),
+    REMOVEFILTERS ( dim_amount_band )
+)
+
+
+Risk Lift =
+DIVIDE ( [Fraud Rate %], [Portfolio Fraud Rate %], BLANK () )
+
+
+Risk Lift Label =
+VAR L = [Risk Lift]
+RETURN
+    SWITCH (
+        TRUE (),
+        ISBLANK ( L ),  "-",
+        L >= 5,         "Critical (" & FORMAT ( L, "0.0" ) & "x)",
+        L >= 2,         "High ("     & FORMAT ( L, "0.0" ) & "x)",
+        L >= 1.2,       "Elevated (" & FORMAT ( L, "0.0" ) & "x)",
+        "Normal (" & FORMAT ( L, "0.0" ) & "x)"
+    )
+
+
+// ---------------------------------------------------------------------------
+//  4. TIME INTELLIGENCE
+//     Requires dim_date to be marked as a date table:
+//     select dim_date > Table tools > Mark as Date Table > date
+// ---------------------------------------------------------------------------
+
+Fraud Loss PM =
+CALCULATE ( [Fraud Loss], DATEADD ( dim_date[date], -1, MONTH ) )
+
+
+Fraud Loss MoM % =
+DIVIDE ( [Fraud Loss] - [Fraud Loss PM], [Fraud Loss PM], BLANK () ) * 100
+
+
+Fraud Rate 7D MA =
+AVERAGEX (
+    DATESINPERIOD ( dim_date[date], MAX ( dim_date[date] ), -7, DAY ),
+    [Fraud Rate %]
+)
+
+
+Fraud Loss Running Total =
+CALCULATE (
+    [Fraud Loss],
+    FILTER (
+        ALLSELECTED ( dim_date[date] ),
+        dim_date[date] <= MAX ( dim_date[date] )
+    )
+)
+
+
+// ---------------------------------------------------------------------------
+//  5. ENTITY MEASURES
+// ---------------------------------------------------------------------------
+
+Terminals Affected =
+CALCULATE (
+    DISTINCTCOUNT ( fact_transactions[terminal_id] ),
+    fact_transactions[is_fraud] = 1
+)
+
+
+Customers Affected =
+CALCULATE (
+    DISTINCTCOUNT ( fact_transactions[customer_id] ),
+    fact_transactions[is_fraud] = 1
+)
+
+
+Customer Impact Rate % =
+DIVIDE (
+    [Customers Affected],
+    DISTINCTCOUNT ( fact_transactions[customer_id] ),
+    0
+) * 100
+
+
+High Risk Terminals =
+CALCULATE (
+    DISTINCTCOUNT ( dim_terminal[terminal_id] ),
+    dim_terminal[risk_tier] IN { "1 - Critical", "2 - High" }
+)
+
+
+// ---------------------------------------------------------------------------
+//  6. PARETO / CONCENTRATION
+//     Answers "how much of the loss sits in the worst N terminals?" -- the
+//     measure that justifies targeted review over blanket rules.
+// ---------------------------------------------------------------------------
+
+Terminal Loss Rank =
+RANKX (
+    ALLSELECTED ( dim_terminal[terminal_id] ),
+    [Fraud Loss],
+    ,
+    DESC,
+    DENSE
+)
+
+
+Cumulative Loss by Terminal =
+VAR CurrentLoss = [Fraud Loss]
+RETURN
+    SUMX (
+        FILTER (
+            ALLSELECTED ( dim_terminal[terminal_id] ),
+            CALCULATE ( [Fraud Loss] ) >= CurrentLoss
+        ),
+        CALCULATE ( [Fraud Loss] )
+    )
+
+
+Cumulative Loss % =
+DIVIDE (
+    [Cumulative Loss by Terminal],
+    CALCULATE ( [Fraud Loss], ALLSELECTED ( dim_terminal ) ),
+    0
+) * 100
+
+
+// ---------------------------------------------------------------------------
+//  7. THRESHOLD SIMULATOR
+//     Create the parameter first:
+//       Modeling > New parameter > Numeric range
+//       Name "Review Threshold", Min 20, Max 600, Increment 10, Default 200
+//     That generates a table named 'Review Threshold' with a value column.
+//     These measures then respond live to the slicer.
+// ---------------------------------------------------------------------------
+
+Selected Threshold =
+SELECTEDVALUE ( 'Review Threshold'[Review Threshold], 200 )
+
+
+Txns Flagged =
+VAR T = [Selected Threshold]
+RETURN
+    CALCULATE (
+        COUNTROWS ( fact_transactions ),
+        fact_transactions[amount] >= T
+    )
+
+
+Frauds Caught =
+VAR T = [Selected Threshold]
+RETURN
+    CALCULATE (
+        COUNTROWS ( fact_transactions ),
+        fact_transactions[amount] >= T,
+        fact_transactions[is_fraud] = 1
+    )
+
+
+Frauds Missed =
+[Fraud Transactions] - [Frauds Caught]
+
+
+False Positives =
+[Txns Flagged] - [Frauds Caught]
+
+
+Recall % =
+DIVIDE ( [Frauds Caught], [Fraud Transactions], 0 ) * 100
+
+
+Precision % =
+DIVIDE ( [Frauds Caught], [Txns Flagged], 0 ) * 100
+
+
+Loss Prevented =
+VAR T = [Selected Threshold]
+RETURN
+    CALCULATE (
+        SUM ( fact_transactions[amount] ),
+        fact_transactions[amount] >= T,
+        fact_transactions[is_fraud] = 1
+    )
+
+
+Residual Loss =
+[Fraud Loss] - [Loss Prevented]
+
+
+// Cost model. Externalise these as What-If parameters if the business
+// wants to tune them without editing DAX.
+Review Cost per Case = 3
+False Decline Cost   = 12
+Recovery Rate        = 0.75
+
+
+Operating Cost =
+[Txns Flagged] * [Review Cost per Case]
+    + [False Positives] * [False Decline Cost]
+
+
+Net Benefit =
+[Loss Prevented] * [Recovery Rate] - [Operating Cost] - [Residual Loss]
+
+
+Net Benefit Formatted =
+VAR N = [Net Benefit]
+RETURN
+    IF (
+        N >= 0,
+        "+" & FORMAT ( N, "#,##0" ),
+        FORMAT ( N, "#,##0" )
+    )
+
+
+// ---------------------------------------------------------------------------
+//  8. NARRATIVE MEASURES
+//     Dynamic titles beat static ones -- the visual explains itself when the
+//     reader changes a slicer, which removes a whole class of misreading.
+// ---------------------------------------------------------------------------
+
+Threshold Recommendation =
+VAR T   = [Selected Threshold]
+VAR R   = [Recall %]
+VAR P   = [Precision %]
+VAR N   = [Net Benefit]
+RETURN
+    "Reviewing above " & FORMAT ( T, "#,##0" ) & " flags "
+        & FORMAT ( [Txns Flagged], "#,##0" ) & " transactions, catches "
+        & FORMAT ( R, "0.0" ) & "% of fraud at " & FORMAT ( P, "0.0" )
+        & "% precision, for a net benefit of " & FORMAT ( N, "#,##0" ) & "."
+
+
+KPI Header =
+"Fraud rate " & FORMAT ( [Fraud Rate %], "0.000" ) & "%  |  "
+    & FORMAT ( [Fraud Transactions], "#,##0" ) & " cases  |  "
+    & FORMAT ( [Fraud Loss], "#,##0" ) & " lost"
+
+
+// ---------------------------------------------------------------------------
+//  9. CONDITIONAL FORMATTING HELPERS
+//     Return hex strings; bind via Format > Cell elements > Background colour
+//     > Format style = Field value.
+// ---------------------------------------------------------------------------
+
+Risk Colour =
+VAR L = [Risk Lift]
+RETURN
+    SWITCH (
+        TRUE (),
+        ISBLANK ( L ), "#F3F4F6",
+        L >= 5,        "#DC2626",
+        L >= 2,        "#F59E0B",
+        L >= 1.2,      "#FDE68A",
+        "#D1FAE5"
+    )
+
+
+Net Benefit Colour =
+IF ( [Net Benefit] >= 0, "#065F46", "#991B1B" )
+
+// ======================== END OF MEASURE LIBRARY ==========================

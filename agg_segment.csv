@@ -1,0 +1,5 @@
+value_segment,customers,txns,spend,fraud_txns,fraud_rate_pct,customers_hit
+A - Premium,1246,341694,26543078.09,3118,0.913,821
+B - High Value,1245,249361,13011034.67,1747,0.701,641
+C - Mid Value,1246,188436,6025209.21,1358,0.721,525
+D - Low Value,1246,102977,1730599.12,710,0.689,329

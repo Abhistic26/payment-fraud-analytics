@@ -1,0 +1,4 @@
+fraud_type,incidents,loss_value,avg_loss,customers_hit,terminals
+S3 - Account Takeover,2225,581803.05,261.48,245,1879
+S2 - Terminal Compromise,4213,229471.21,54.47,2016,179
+S1 - High Value Anomaly,495,116553.57,235.46,317,480

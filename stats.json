@@ -1,0 +1,139 @@
+{
+  "test1_amount": {
+    "test": "Mann-Whitney U (non-parametric; normality rejected)",
+    "u_statistic": 4028340808.5,
+    "p_value": 0.0,
+    "effect_size_rank_biserial": 0.3272767578293978,
+    "median_fraud": 74.65,
+    "median_legit": 44.51,
+    "mean_fraud": 133.8277556613299,
+    "mean_legit": 52.9757157166761,
+    "significant_at_5pct": true
+  },
+  "test2_timing": {
+    "test": "Chi-square test of independence",
+    "chi2": 0.43830474433621214,
+    "p_value": 0.9322207660278953,
+    "dof": 3,
+    "cramers_v": 0.0007047557092800743,
+    "fraud_rate_by_period": {
+      "01 Night (00-06)": 0.795,
+      "02 Morning (06-12)": 0.79,
+      "03 Afternoon (12-18)": 0.778,
+      "04 Evening (18-24)": 0.786
+    },
+    "significant_at_5pct": false,
+    "practical_significance": "weak"
+  },
+  "test3_amount_band": {
+    "test": "Chi-square test of independence",
+    "chi2": 206430.80663124434,
+    "p_value": 0.0,
+    "cramers_v": 0.48365732749432805,
+    "strength_vs_timing": 686.2765652347764
+  },
+  "test4_fraud_rate_ci": {
+    "method": "Wilson score interval",
+    "point_estimate_pct": 0.7856375528631067,
+    "ci_lower_pct": 0.7674302677737217,
+    "ci_upper_pct": 0.8042733047676982,
+    "n": 882468,
+    "successes": 6933
+  },
+  "test5_threshold": {
+    "assumptions": {
+      "cost_per_review": 3.0,
+      "cost_false_decline": 12.0,
+      "recovery_rate": 0.75
+    },
+    "optimal_threshold": 200,
+    "net_benefit": 103239.37,
+    "recall_pct": 24.56,
+    "precision_pct": 60.54,
+    "loss_prevented": 451211.23,
+    "improvement_vs_threshold_100": 1488035.8599999999
+  },
+  "test6_sensitivity": {
+    "scenarios": [
+      {
+        "review_cost": 1.5,
+        "false_decline_cost": 6.0,
+        "optimal_threshold": 180,
+        "net_benefit": 120652.47
+      },
+      {
+        "review_cost": 1.5,
+        "false_decline_cost": 12.0,
+        "optimal_threshold": 200,
+        "net_benefit": 107458.87
+      },
+      {
+        "review_cost": 1.5,
+        "false_decline_cost": 24.0,
+        "optimal_threshold": 210,
+        "net_benefit": 100818.07
+      },
+      {
+        "review_cost": 3.0,
+        "false_decline_cost": 6.0,
+        "optimal_threshold": 190,
+        "net_benefit": 114209.14
+      },
+      {
+        "review_cost": 3.0,
+        "false_decline_cost": 12.0,
+        "optimal_threshold": 200,
+        "net_benefit": 103239.37
+      },
+      {
+        "review_cost": 3.0,
+        "false_decline_cost": 24.0,
+        "optimal_threshold": 210,
+        "net_benefit": 97783.57
+      },
+      {
+        "review_cost": 6.0,
+        "false_decline_cost": 6.0,
+        "optimal_threshold": 190,
+        "net_benefit": 101891.14
+      },
+      {
+        "review_cost": 6.0,
+        "false_decline_cost": 12.0,
+        "optimal_threshold": 210,
+        "net_benefit": 95974.57
+      },
+      {
+        "review_cost": 6.0,
+        "false_decline_cost": 24.0,
+        "optimal_threshold": 210,
+        "net_benefit": 91714.57
+      }
+    ],
+    "threshold_range": [
+      180,
+      210
+    ],
+    "stable": true
+  },
+  "test7_blind_spot": {
+    "threshold": 200,
+    "frauds_missed": 5230,
+    "pct_of_all_fraud_missed": 75.43631905380066,
+    "unprevented_loss": 326212.86,
+    "by_type": [
+      {
+        "fraud_type": "S2 - Terminal Compromise",
+        "incidents": 4206,
+        "loss": 227950.01,
+        "avg_ratio_to_baseline": 1.0
+      },
+      {
+        "fraud_type": "S3 - Account Takeover",
+        "incidents": 1024,
+        "loss": 98262.85,
+        "avg_ratio_to_baseline": 3.27
+      }
+    ]
+  }
+}
