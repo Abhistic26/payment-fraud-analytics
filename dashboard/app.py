@@ -92,7 +92,7 @@ h1, h2, h3 {{ font-family: 'Fraunces', Georgia, serif !important;
 </style>
 """, unsafe_allow_html=True)
 
-D = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+D = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 
 
 @st.cache_data
