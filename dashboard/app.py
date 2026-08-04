@@ -236,8 +236,10 @@ with tabs[0]:
                         line=dict(color="white", width=2)),
             textinfo="percent", textfont=dict(size=12, color="white"),
             hovertemplate="%{label}<br>%{value:,.0f}<extra></extra>"))
-        f.update_layout(**PLOTLY, height=330, title="Share of loss by typology",
+        _lo = dict(**PLOTLY)
+        _lo.update(height=330, title="Share of loss by typology",
                         legend=dict(orientation="h", y=-.12, x=0, font=dict(size=10)))
+        f.update_layout(**_lo)
         st.plotly_chart(f, use_container_width=True)
 
     st.markdown('<div class="sec">Fraud typologies</div>', unsafe_allow_html=True)
@@ -272,8 +274,10 @@ with tabs[1]:
         f.add_hline(y=base, line=dict(color=INK_SOFT, width=1, dash="dot"),
                     annotation_text=f"portfolio {base:.3f}%",
                     annotation_font=dict(size=10, color=INK_SOFT))
-        f.update_layout(**PLOTLY, height=350, title="Fraud rate by amount band",
+        _lo = dict(**PLOTLY)
+        _lo.update(height=350, title="Fraud rate by amount band",
                         showlegend=False)
+        f.update_layout(**_lo)
         f.update_xaxes(tickangle=-35, tickfont=dict(size=10))
         st.plotly_chart(f, use_container_width=True)
 
@@ -286,10 +290,12 @@ with tabs[1]:
                       marker_color=col, opacity=.85,
                       hovertemplate=nm + "<br>%{x}–%{customdata}<br>%{y:.2f}%<extra></extra>",
                       customdata=s.bin + 10)
-        f.update_layout(**PLOTLY, height=350, barmode="overlay",
+        _lo = dict(**PLOTLY)
+        _lo.update(height=350, barmode="overlay",
                         title="Amount distribution (% within class)",
                         legend=dict(orientation="h", y=1.06, x=0,
                                     bgcolor="rgba(0,0,0,0)"))
+        f.update_layout(**_lo)
         st.plotly_chart(f, use_container_width=True)
 
     finding("Where the risk actually is",
@@ -313,8 +319,10 @@ with tabs[1]:
             line=dict(color=INK, width=2), marker=dict(size=6, color=INK),
             hovertemplate="%{x}:00<br>%{y:.3f}%<extra></extra>"))
         f.add_hline(y=base, line=dict(color=RISK, width=1, dash="dot"))
-        f.update_layout(**PLOTLY, height=300,
+        _lo = dict(**PLOTLY)
+        _lo.update(height=300,
                         title="Fraud rate by hour of day (%)")
+        f.update_layout(**_lo)
         f.update_yaxes(range=[base * .8, base * 1.2])
         st.plotly_chart(f, use_container_width=True)
 
@@ -338,7 +346,9 @@ spend real budget against a non-effect.</p>
                                 values="fraud_rate_pct")
     f = px.imshow(hm, color_continuous_scale=["#FFFFFF", "#F5D7A8", RISK],
                   aspect="auto", labels=dict(color="Fraud %"))
-    f.update_layout(**PLOTLY, height=280)
+    _lo = dict(**PLOTLY)
+    _lo.update(height=280)
+    f.update_layout(**_lo)
     f.update_xaxes(tickangle=-30, tickfont=dict(size=10), side="bottom")
     st.plotly_chart(f, use_container_width=True)
     st.caption("Colour varies almost entirely left-to-right (amount) and "
@@ -367,8 +377,10 @@ with tabs[2]:
                           text=[f"  {y:.0f}%"], textposition="middle right",
                           textfont=dict(size=11, color=RISK), showlegend=False,
                           hoverinfo="skip")
-        f.update_layout(**PLOTLY, height=350, showlegend=False,
+        _lo = dict(**PLOTLY)
+        _lo.update(height=350, showlegend=False,
                         title="Loss concentration across the terminal estate")
+        f.update_layout(**_lo)
         f.update_xaxes(title="% of terminals, worst first", range=[0, 25])
         f.update_yaxes(title="% of total loss")
         st.plotly_chart(f, use_container_width=True)
@@ -445,8 +457,10 @@ with tabs[3]:
         f.add_vline(x=thr, line=dict(color=RISK, width=1.5),
                     annotation_text="your setting", annotation_position="top left",
                     annotation_font=dict(size=10, color=RISK))
-        f.update_layout(**PLOTLY, height=330, showlegend=False,
+        _lo = dict(**PLOTLY)
+        _lo.update(height=330, showlegend=False,
                         title="Net benefit by review threshold")
+        f.update_layout(**_lo)
         st.plotly_chart(f, use_container_width=True)
 
     with c2:
@@ -456,10 +470,12 @@ with tabs[3]:
         f.add_scatter(x=th.threshold, y=th.precision_pct, name="Precision",
                       line=dict(color=INK, width=2.2))
         f.add_vline(x=thr, line=dict(color=GOLD, width=1.5, dash="dot"))
-        f.update_layout(**PLOTLY, height=330,
+        _lo = dict(**PLOTLY)
+        _lo.update(height=330,
                         title="Precision / recall trade-off",
                         legend=dict(orientation="h", y=1.06, x=0,
                                     bgcolor="rgba(0,0,0,0)"))
+        f.update_layout(**_lo)
         st.plotly_chart(f, use_container_width=True)
 
     verdict = ("matches" if abs(thr - opt.threshold) <= 10 else
@@ -484,8 +500,10 @@ with tabs[3]:
                       color_continuous_scale=["#EEF2F7", "#9FB0C9"],
                       labels=dict(x="False-decline cost", y="Review cost",
                                   color="Optimal"))
-        f.update_layout(**PLOTLY, height=270, coloraxis_showscale=False,
+        _lo = dict(**PLOTLY)
+        _lo.update(height=270, coloraxis_showscale=False,
                         title="Optimal threshold across cost scenarios")
+        f.update_layout(**_lo)
         st.plotly_chart(f, use_container_width=True)
     with c2:
         t6 = S["test6_sensitivity"]
